@@ -69,7 +69,7 @@ const MediaCard: React.FC<{ media: GeneratedMedia }> = ({ media }) => {
         }} 
         className="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black transition-all flex items-center justify-center gap-2"
       >
-        <i className="fas fa-download"></i> Baixar Áudio Master
+        <i className="fas fa-download"></i> Baixar Áudio
       </button>
     </div>
   );
@@ -131,7 +131,7 @@ export default function App() {
 
       setMedias([
         { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast (Essencial)', description: 'O resumo estratégico para quem tem pouco tempo.', audioUrl: audioResUrl },
-        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão Deep (Masterclass)', description: 'Explicação profunda e detalhada sobre o tema.', audioUrl: audioCompUrl }
+        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão (Masterclass)', description: 'Explicação profunda e detalhada sobre o tema.', audioUrl: audioCompUrl }
       ]);
 
       setStep(GenerationStep.COMPLETED);
@@ -240,7 +240,7 @@ export default function App() {
                     <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.4)]">
                       <i className="fas fa-chart-line text-white text-xl"></i>
                     </div>
-                    <h3 className="text-2xl font-black">Plano Empreendedor Conclusivo</h3>
+                    <h3 className="text-2xl font-black">Sugestão Empreendedora</h3>
                   </div>
                   <div className="text-gray-200 text-lg leading-relaxed font-semibold">
                     {research.businessOpportunities}
@@ -291,7 +291,7 @@ export default function App() {
       </main>
 
       <footer className="mt-32 border-t border-white/5 py-12 text-center opacity-20 text-[9px] uppercase font-black tracking-[0.6em]">
-        Expert AI Platform &copy; 2025 // Ultra Fidelity Experience
+        Expert AI Platform &copy; 2025 // Ultra Fidelity Experience // By Renato Torres
       </footer>
     </div>
   );

@@ -26,20 +26,25 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
 export const researchSubject = async (subject: string): Promise<ResearchResult> => {
   return withRetry(async () => {
     const ai = getAI();
+    
     const prompt = `Realize uma pesquisa profunda e estratégica sobre: "${subject}" em PORTUGUÊS (BRASIL).
-    
-    REGRAS PARA REFERÊNCIAS (VÍDEOS):
-    - Use a ferramenta googleSearch para encontrar vídeos REAIS e ATIVOS de canais autoritativos.
-    - Garanta que os links do YouTube funcionem.
-    
-    ESTRUTURA JSON:
-    1. summary: Resumo executivo para tomada de decisão.
-    2. history: Evolução do tema até os dias atuais.
-    3. futureVision: Tendências disruptivas para os próximos 10 anos.
-    4. businessOpportunities: 3 ideias de negócios detalhadas e lucrativas.
-    5. globalReferences: 3 vídeos internacionais relevantes.
-    6. brazilianReferences: 3 vídeos nacionais de grandes canais (Nerdologia, Me Poupe, Exame, etc).
-    7. facts: 5 fatos curiosos ou estatísticas impressionantes.`;
+
+    REGRAS CRÍTICAS PARA VÍDEOS (YOUTUBE):
+    1. Você DEVE usar a ferramenta 'googleSearch' para encontrar os vídeos.
+    2. NUNCA invente ou tente deduzir um link do YouTube.
+    3. Use APENAS URLs que você visualizar explicitamente nos resultados de pesquisa.
+    4. Priorize vídeos de canais OFICIAIS e VERIFICADOS (ex: portais de notícias, canais educacionais famosos, especialistas renomados).
+    5. Formato exigido: https://www.youtube.com/watch?v=...
+    6. Se não encontrar um vídeo verificado e recente (2024-2025) para o tema exato, procure por um canal de autoridade que fale sobre o assunto geral.
+
+    ESTRUTURA DO JSON:
+    - summary: Resumo estratégico.
+    - history: Contexto histórico.
+    - futureVision: Visão de futuro.
+    - businessOpportunities: Ideias de negócio.
+    - globalReferences: 3 vídeos internacionais (extraídos da busca real).
+    - brazilianReferences: 3 vídeos brasileiros (extraídos da busca real).
+    - facts: 5 fatos relevantes.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
@@ -105,16 +110,7 @@ export const generateDetailedScript = async (subject: string, mode: 'resumido' |
     
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
-      contents: `Você é um podcaster profissional de elite. Escreva um roteiro completo em PORTUGUÊS (BRASIL) sobre: "${subject}". 
-      
-      REGRAS DE OURO (NÃO NEGOCIÁVEIS):
-      1. Escreva APENAS as palavras que o locutor deve dizer.
-      2. NÃO inclua [Música], [Introdução], [Narrador:], [Cena:], meta-comentários ou qualquer tipo de instrução de roteiro.
-      3. O texto deve começar diretamente com o conteúdo e ser uma narrativa contínua, elegante e envolvente.
-      4. Elimine qualquer menção de "Roteiro para podcast" ou títulos no início do texto.
-      5. Estilo: Educativo, sofisticado e visionário.
-      
-      Tamanho alvo: Aproximadamente ${targetWords}.`,
+      contents: `Você é um podcaster profissional de elite. Escreva um roteiro completo em PORTUGUÊS (BRASIL) sobre: "${subject}". Escreva apenas o que deve ser falado, sem marcações de cena.`,
     });
     
     return response.text;
