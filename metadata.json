@@ -1,0 +1,8 @@
+{
+  "name": "Expert AI - Facilitador de Conhecimento",
+  "description": "Uma plataforma avançada que transforma qualquer assunto em uma experiência completa de aprendizado com podcasts, vídeos e pesquisas profundas usando IA de ponta.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
