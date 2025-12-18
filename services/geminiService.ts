@@ -30,21 +30,21 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
     const prompt = `Realize uma pesquisa profunda e estratégica sobre: "${subject}" em PORTUGUÊS (BRASIL).
 
     REGRAS CRÍTICAS PARA VÍDEOS (YOUTUBE):
-    1. Você DEVE usar a ferramenta 'googleSearch' para encontrar os vídeos.
-    2. NUNCA invente ou tente deduzir um link do YouTube.
-    3. Use APENAS URLs que você visualizar explicitamente nos resultados de pesquisa.
-    4. Priorize vídeos de canais OFICIAIS e VERIFICADOS (ex: portais de notícias, canais educacionais famosos, especialistas renomados).
-    5. Formato exigido: https://www.youtube.com/watch?v=...
-    6. Se não encontrar um vídeo verificado e recente (2024-2025) para o tema exato, procure por um canal de autoridade que fale sobre o assunto geral.
+    1. Use a ferramenta 'googleSearch' para encontrar os vídeos.
+    2. NUNCA invente ou alucine links. Copie EXATAMENTE a URL encontrada nos resultados de pesquisa confiáveis.
+    3. Procure por vídeos postados nos últimos 24 meses para garantir que o link esteja ativo.
+    4. Priorize canais VERIFICADOS, OFICIAIS, de Notícias ou Educacionais (ex: CNN, BBC, TED, Nerdologia, Me Poupe).
+    5. Formato: https://www.youtube.com/watch?v=...
+    6. Verifique se o título do vídeo corresponde ao link.
 
     ESTRUTURA DO JSON:
-    - summary: Resumo estratégico.
-    - history: Contexto histórico.
-    - futureVision: Visão de futuro.
-    - businessOpportunities: Ideias de negócio.
-    - globalReferences: 3 vídeos internacionais (extraídos da busca real).
-    - brazilianReferences: 3 vídeos brasileiros (extraídos da busca real).
-    - facts: 5 fatos relevantes.`;
+    - summary: Resumo estratégico de alto impacto.
+    - history: Contexto histórico detalhado.
+    - futureVision: Visão de futuro (próximos 5 a 10 anos).
+    - businessOpportunities: 3 planos de negócio concretos.
+    - globalReferences: 3 vídeos internacionais reais e ativos.
+    - brazilianReferences: 3 vídeos brasileiros reais e ativos.
+    - facts: 5 fatos curiosos e validados.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
@@ -106,11 +106,35 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
 export const generateDetailedScript = async (subject: string, mode: 'resumido' | 'completo'): Promise<string> => {
   return withRetry(async () => {
     const ai = getAI();
-    const targetWords = mode === 'resumido' ? "700 palavras" : "2500 palavras";
+    
+    let prompt = "";
+    if (mode === 'completo') {
+      prompt = `Você é um apresentador de podcast de elite especializado em Masterclasses imersivas. 
+      Escreva um roteiro EXTENSO e PROFUNDO em PORTUGUÊS (BRASIL) sobre: "${subject}". 
+      
+      ESTRUTURA OBRIGATÓRIA PARA O ROTEIRO COMPLETO (Mínimo de 1500 palavras):
+      1. INTRODUÇÃO: Comece com um gancho poderoso, definindo o que é o assunto e por que ele é vital hoje.
+      2. EVOLUÇÃO HISTÓRICA: Explore as raízes do tema, como ele surgiu, os marcos principais ao longo das décadas e como chegamos ao estado atual. Seja detalhista.
+      3. CENÁRIO ATUAL: Discorra sobre as tecnologias, tendências e desafios que definem o assunto hoje.
+      4. OPORTUNIDADES E NEGÓCIOS: Analise como pessoas e empresas podem lucrar ou se beneficiar desse conhecimento agora.
+      5. VISÃO DE FUTURO (PRÓXIMOS 5 ANOS): Faça projeções baseadas em dados sobre para onde estamos indo.
+      6. CONCLUSÃO: Resuma os principais insights e deixe uma mensagem inspiradora.
+
+      REGRAS:
+      - Escreva APENAS o texto que será falado.
+      - NÃO inclua [Música], [Narrador:], títulos de capítulos ou instruções de roteiro.
+      - O texto deve ser fluido, natural e manter o ouvinte engajado do início ao fim.
+      - Use toda a sua base de conhecimento para expandir cada tópico ao máximo.`;
+    } else {
+      prompt = `Escreva um roteiro de podcast resumido e direto (Pocket Podcast) sobre: "${subject}" em PORTUGUÊS (BRASIL). Foque apenas no essencial para uma compreensão rápida de 2 a 3 minutos. Escreva apenas a fala do locutor.`;
+    }
     
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
-      contents: `Você é um podcaster profissional de elite. Escreva um roteiro completo em PORTUGUÊS (BRASIL) sobre: "${subject}". Escreva apenas o que deve ser falado, sem marcações de cena.`,
+      contents: prompt,
+      config: {
+        thinkingConfig: { thinkingBudget: 4000 }
+      }
     });
     
     return response.text;
