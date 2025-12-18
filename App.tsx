@@ -85,8 +85,13 @@ export default function App() {
 
   useEffect(() => {
     const checkKey = async () => {
-      const selected = await (window as any).aistudio.hasSelectedApiKey();
-      setHasKey(selected);
+      if ((window as any).aistudio && (window as any).aistudio.hasSelectedApiKey) {
+        const selected = await (window as any).aistudio.hasSelectedApiKey();
+        setHasKey(selected);
+      } else {
+        // Se estiver fora do ambiente AI Studio, assume que a chave vem do process.env
+        setHasKey(!!process.env.API_KEY);
+      }
     };
     checkKey();
   }, []);
@@ -95,7 +100,7 @@ export default function App() {
     e.preventDefault();
     if (!subject.trim()) return;
     
-    if (!hasKey) { 
+    if (!hasKey && (window as any).aistudio) { 
       await (window as any).aistudio.openSelectKey();
       setHasKey(true);
     }
@@ -136,6 +141,7 @@ export default function App() {
 
       setStep(GenerationStep.COMPLETED);
     } catch (err: any) {
+      console.error(err);
       setError(err.message || "Erro de conexão ou processamento. Tente novamente.");
       setStep(GenerationStep.ERROR);
     }
@@ -151,7 +157,7 @@ export default function App() {
             </div>
             <h1 className="text-xl font-black tracking-tighter uppercase">Expert <span className="text-purple-500 italic">AI</span></h1>
           </div>
-          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Audio Experience v5.0</div>
+          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Audio Experience v5.1</div>
         </div>
       </nav>
 
@@ -219,7 +225,7 @@ export default function App() {
                     <p className="text-xl md:text-2xl font-bold text-white leading-tight">{research.summary}</p>
                     <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
                        <h4 className="text-white font-black mb-4 uppercase text-xs tracking-widest opacity-40">Evolução Histórica</h4>
-                       <p className="text-sm italic font-medium opacity-80">{research.history}</p>
+                       <p className="text-sm italic font-medium opacity-80 whitespace-pre-line">{research.history}</p>
                     </div>
                   </div>
                 </section>
@@ -229,9 +235,9 @@ export default function App() {
                 </div>
 
                 <section className="glass-panel p-10 md:p-14 rounded-[3rem] border-l-8 border-green-600 bg-gradient-to-br from-green-600/5 to-transparent">
-                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4"><i className="fas fa-telescope text-green-500"></i> Visão 2035</h3>
+                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4"><i className="fas fa-telescope text-green-500"></i> Visão de Futuro</h3>
                   <div className="bg-green-500/5 p-8 rounded-3xl border border-green-500/20">
-                    <p className="text-gray-300 text-lg leading-relaxed italic font-medium">{research.futureVision}</p>
+                    <p className="text-gray-300 text-lg leading-relaxed italic font-medium whitespace-pre-line">{research.futureVision}</p>
                   </div>
                 </section>
 
@@ -242,7 +248,7 @@ export default function App() {
                     </div>
                     <h3 className="text-2xl font-black">Sugestão Empreendedora</h3>
                   </div>
-                  <div className="text-gray-200 text-lg leading-relaxed font-semibold">
+                  <div className="text-gray-200 text-lg leading-relaxed font-semibold whitespace-pre-line">
                     {research.businessOpportunities}
                   </div>
                 </section>
