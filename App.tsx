@@ -80,17 +80,17 @@ export default function App() {
   const [step, setStep] = useState<GenerationStep>(GenerationStep.IDLE);
   const [research, setResearch] = useState<ResearchResult | null>(null);
   const [medias, setMedias] = useState<GeneratedMedia[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{title: string, message: string} | null>(null);
   const [hasKey, setHasKey] = useState(false);
 
   useEffect(() => {
     const checkKey = async () => {
-      if ((window as any).aistudio && (window as any).aistudio.hasSelectedApiKey) {
-        const selected = await (window as any).aistudio.hasSelectedApiKey();
+      const win = window as any;
+      if (win.aistudio && win.aistudio.hasSelectedApiKey) {
+        const selected = await win.aistudio.hasSelectedApiKey();
         setHasKey(selected);
       } else {
-        // Se estiver fora do ambiente AI Studio, assume que a chave vem do process.env
-        setHasKey(!!process.env.API_KEY);
+        setHasKey(!!process.env.API_KEY && process.env.API_KEY !== "undefined");
       }
     };
     checkKey();
@@ -100,8 +100,9 @@ export default function App() {
     e.preventDefault();
     if (!subject.trim()) return;
     
-    if (!hasKey && (window as any).aistudio) { 
-      await (window as any).aistudio.openSelectKey();
+    const win = window as any;
+    if (!hasKey && win.aistudio && win.aistudio.openSelectKey) { 
+      await win.aistudio.openSelectKey();
       setHasKey(true);
     }
 
@@ -141,8 +142,21 @@ export default function App() {
 
       setStep(GenerationStep.COMPLETED);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Erro de conexão ou processamento. Tente novamente.");
+      console.error("Erro capturado:", err);
+      
+      let errorTitle = "Erro no Processamento";
+      let errorMessage = err.message || "Ocorreu um erro inesperado.";
+
+      // Detecção de erros comuns de rede/CORS/Adblock
+      if (err instanceof TypeError && err.message.includes('failed')) {
+        errorTitle = "Requisição Bloqueada";
+        errorMessage = "O navegador não conseguiu conectar com a inteligência do Google. Isso geralmente acontece por causa de BLOQUEADORES DE ANÚNCIOS (AdBlock) ou redes corporativas restritas. Por favor, desative o AdBlock e tente novamente.";
+      } else if (err.message?.includes('API_KEY_MISSING')) {
+        errorTitle = "Chave de API Ausente";
+        errorMessage = "A chave de API não foi configurada corretamente na Vercel. Verifique as variáveis de ambiente.";
+      }
+
+      setError({ title: errorTitle, message: errorMessage });
       setStep(GenerationStep.ERROR);
     }
   };
@@ -157,7 +171,7 @@ export default function App() {
             </div>
             <h1 className="text-xl font-black tracking-tighter uppercase">Expert <span className="text-purple-500 italic">AI</span></h1>
           </div>
-          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Audio Experience v5.1</div>
+          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Audio Experience v5.2</div>
         </div>
       </nav>
 
@@ -224,8 +238,8 @@ export default function App() {
                   <div className="text-gray-200 space-y-10 leading-relaxed">
                     <p className="text-xl md:text-2xl font-bold text-white leading-tight">{research.summary}</p>
                     <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
-                       <h4 className="text-white font-black mb-4 uppercase text-xs tracking-widest opacity-40">Evolução Histórica</h4>
-                       <p className="text-sm italic font-medium opacity-80 whitespace-pre-line">{research.history}</p>
+                       <h4 className="text-white font-black mb-4 uppercase text-xs tracking-widest opacity-40">Histórico & Evolução</h4>
+                       <p className="text-sm italic font-medium opacity-80 whitespace-pre-line leading-relaxed">{research.history}</p>
                     </div>
                   </div>
                 </section>
@@ -235,7 +249,7 @@ export default function App() {
                 </div>
 
                 <section className="glass-panel p-10 md:p-14 rounded-[3rem] border-l-8 border-green-600 bg-gradient-to-br from-green-600/5 to-transparent">
-                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4"><i className="fas fa-telescope text-green-500"></i> Visão de Futuro</h3>
+                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4"><i className="fas fa-telescope text-green-500"></i> Visão de Futuro (5-10 anos)</h3>
                   <div className="bg-green-500/5 p-8 rounded-3xl border border-green-500/20">
                     <p className="text-gray-300 text-lg leading-relaxed italic font-medium whitespace-pre-line">{research.futureVision}</p>
                   </div>
@@ -267,7 +281,7 @@ export default function App() {
                 </div>
 
                 <div className="glass-panel p-8 rounded-3xl">
-                   <h3 className="text-xs font-black mb-6 uppercase tracking-widest text-gray-500 border-b border-white/5 pb-4">Grounding Web</h3>
+                   <h3 className="text-xs font-black mb-6 uppercase tracking-widest text-gray-500 border-b border-white/5 pb-4">Fontes Consultadas</h3>
                    <div className="flex flex-col gap-3">
                      {research.sources?.map((s, i) => (
                        <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="p-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold hover:bg-white/10 transition-all flex items-center gap-4 group">
@@ -282,16 +296,21 @@ export default function App() {
           </div>
         )}
 
-        {step === GenerationStep.ERROR && (
-          <div className="max-w-lg mx-auto text-center py-24 glass-panel rounded-[3rem] border-red-500/30 px-12">
+        {step === GenerationStep.ERROR && error && (
+          <div className="max-w-lg mx-auto text-center py-24 glass-panel rounded-[3rem] border-red-500/30 px-12 animate-in fade-in slide-in-from-top-4">
             <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-8">
-              <i className="fas fa-exclamation-triangle text-4xl text-red-600"></i>
+              <i className="fas fa-network-wired text-4xl text-red-600"></i>
             </div>
-            <h3 className="text-3xl font-black mb-4">Erro no Sistema</h3>
-            <p className="text-gray-400 mb-10 text-sm leading-relaxed">{error}</p>
-            <button onClick={() => setStep(GenerationStep.IDLE)} className="w-full px-8 py-5 bg-white text-black rounded-2xl font-black uppercase text-xs hover:bg-gray-200 transition-all shadow-2xl">
-              Reiniciar Processo
-            </button>
+            <h3 className="text-3xl font-black mb-4">{error.title}</h3>
+            <p className="text-gray-400 mb-10 text-sm leading-relaxed">{error.message}</p>
+            <div className="flex flex-col gap-4">
+              <button onClick={() => window.location.reload()} className="w-full px-8 py-5 bg-white text-black rounded-2xl font-black uppercase text-xs hover:bg-gray-200 transition-all shadow-2xl">
+                Atualizar Página
+              </button>
+              <button onClick={() => setStep(GenerationStep.IDLE)} className="w-full px-8 py-5 bg-white/5 border border-white/10 text-white rounded-2xl font-black uppercase text-xs hover:bg-white/10 transition-all">
+                Tentar Outro Assunto
+              </button>
+            </div>
           </div>
         )}
       </main>

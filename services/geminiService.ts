@@ -2,7 +2,15 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { ResearchResult } from "../types";
 
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Função para obter uma instância limpa da IA a cada chamada
+// Isso é crucial para garantir que a API_KEY mais recente (injetada ou do ambiente) seja usada
+const getAI = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey || apiKey === "undefined") {
+    throw new Error("API_KEY_MISSING: A chave de API não foi encontrada. Verifique as configurações de ambiente.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
   let lastError: any;
@@ -11,9 +19,10 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
       return await fn();
     } catch (err: any) {
       lastError = err;
-      if (err.message?.includes('500') || err.message?.includes('INTERNAL')) {
+      // Erros 500 ou problemas de rede temporários permitem tentativa
+      if (err.message?.includes('500') || err.message?.includes('INTERNAL') || err.message?.includes('Load failed')) {
         if (i < maxRetries) {
-          await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+          await new Promise(r => setTimeout(r, 1500 * (i + 1)));
           continue;
         }
       }
@@ -31,16 +40,15 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
 
     REGRAS CRÍTICAS PARA VÍDEOS (YOUTUBE):
     1. Use a ferramenta 'googleSearch' para encontrar os vídeos.
-    2. NUNCA invente ou alucine links. Copie EXATAMENTE a URL encontrada nos resultados de pesquisa confiáveis.
-    3. Procure por vídeos postados nos últimos 24 meses para garantir que o link esteja ativo.
-    4. Priorize canais VERIFICADOS, OFICIAIS, de Notícias ou Educacionais (ex: CNN, BBC, TED, Nerdologia, Me Poupe).
+    2. NUNCA invente ou alucine links. Copie EXATAMENTE a URL encontrada nos resultados de pesquisa.
+    3. Procure por vídeos postados nos últimos 24 meses.
+    4. Priorize canais VERIFICADOS.
     5. Formato: https://www.youtube.com/watch?v=...
-    6. Verifique se o título do vídeo corresponde ao link.
 
     ESTRUTURA DO JSON:
     - summary: Resumo estratégico de alto impacto.
-    - history: Contexto histórico detalhado.
-    - futureVision: Visão de futuro (próximos 5 a 10 anos).
+    - history: Contexto histórico detalhado desde o início até hoje.
+    - futureVision: Visão de futuro para os próximos 5 a 10 anos.
     - businessOpportunities: 3 planos de negócio concretos.
     - globalReferences: 3 vídeos internacionais reais e ativos.
     - brazilianReferences: 3 vídeos brasileiros reais e ativos.
@@ -109,24 +117,11 @@ export const generateDetailedScript = async (subject: string, mode: 'resumido' |
     
     let prompt = "";
     if (mode === 'completo') {
-      prompt = `Você é um apresentador de podcast de elite especializado em Masterclasses imersivas. 
-      Escreva um roteiro EXTENSO e PROFUNDO em PORTUGUÊS (BRASIL) sobre: "${subject}". 
-      
-      ESTRUTURA OBRIGATÓRIA PARA O ROTEIRO COMPLETO (Mínimo de 1500 palavras):
-      1. INTRODUÇÃO: Comece com um gancho poderoso, definindo o que é o assunto e por que ele é vital hoje.
-      2. EVOLUÇÃO HISTÓRICA: Explore as raízes do tema, como ele surgiu, os marcos principais ao longo das décadas e como chegamos ao estado atual. Seja detalhista.
-      3. CENÁRIO ATUAL: Discorra sobre as tecnologias, tendências e desafios que definem o assunto hoje.
-      4. OPORTUNIDADES E NEGÓCIOS: Analise como pessoas e empresas podem lucrar ou se beneficiar desse conhecimento agora.
-      5. VISÃO DE FUTURO (PRÓXIMOS 5 ANOS): Faça projeções baseadas em dados sobre para onde estamos indo.
-      6. CONCLUSÃO: Resuma os principais insights e deixe uma mensagem inspiradora.
-
-      REGRAS:
-      - Escreva APENAS o texto que será falado.
-      - NÃO inclua [Música], [Narrador:], títulos de capítulos ou instruções de roteiro.
-      - O texto deve ser fluido, natural e manter o ouvinte engajado do início ao fim.
-      - Use toda a sua base de conhecimento para expandir cada tópico ao máximo.`;
+      prompt = `Você é um apresentador de podcast de elite. Escreva um roteiro EXTENSO (mínimo 1500 palavras) sobre: "${subject}". 
+      Discorra sobre a evolução histórica desde o início, passe pelo cenário atual e termine com oportunidades de negócio e visão de futuro para os próximos 5 anos.
+      Escreva apenas o texto que deve ser falado, de forma fluida.`;
     } else {
-      prompt = `Escreva um roteiro de podcast resumido e direto (Pocket Podcast) sobre: "${subject}" em PORTUGUÊS (BRASIL). Foque apenas no essencial para uma compreensão rápida de 2 a 3 minutos. Escreva apenas a fala do locutor.`;
+      prompt = `Escreva um roteiro de podcast resumido sobre: "${subject}" em PORTUGUÊS. Apenas a fala.`;
     }
     
     const response = await ai.models.generateContent({
