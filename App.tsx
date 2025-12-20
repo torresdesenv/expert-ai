@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GenerationStep, ResearchResult, GeneratedMedia, ReferencePerson } from './types';
 import * as gemini from './services/geminiService';
@@ -46,7 +45,7 @@ const MediaCard: React.FC<{ media: GeneratedMedia, subject: string }> = ({ media
     <div className="glass-panel p-6 rounded-3xl flex flex-col gap-5 border-t-4 border-purple-600 group transition-all">
       <div className="flex justify-between items-start">
         <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase ${media.duration === 'completo' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'}`}>
-          {media.duration}
+          {media.duration === 'completo' ? '10-20 min' : '3-5 min'}
         </span>
         <i className="fas fa-microphone-lines text-purple-500 text-lg"></i>
       </div>
@@ -66,7 +65,7 @@ const MediaCard: React.FC<{ media: GeneratedMedia, subject: string }> = ({ media
           const a = document.createElement('a');
           a.href = media.audioUrl;
           const safeName = subject.replace(/\s+/g, '_');
-          a.download = `ExpertAI_${safeName}_${media.duration === 'completo' ? 'MASTERCLASS' : 'POCKET'}.wav`;
+          a.download = `ExpertAI_${safeName}_${media.duration === 'completo' ? 'IMERSAO' : 'POCKET'}.wav`;
           a.click();
         }} 
         className="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black transition-all flex items-center justify-center gap-2"
@@ -112,6 +111,16 @@ export default function App() {
     return () => clearInterval(timer);
   }, [estimatedSeconds, step]);
 
+  // Remove emojis e caracteres especiais agressivamente para o PDF
+  const cleanTextForPDF = (text: string) => {
+    return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDDFF])/g, '')
+               .replace(/[^\x00-\x7F]/g, (char) => {
+                 // Mantém acentos básicos do PT-BR mas remove o resto
+                 return /[áàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]/.test(char) ? char : '';
+               })
+               .trim();
+  };
+
   const downloadPDF = () => {
     if (!research || !subject) return;
     const doc = new jsPDF();
@@ -128,76 +137,33 @@ export default function App() {
       return false;
     };
 
-    doc.setFontSize(24);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Expert AI: ${subject.toUpperCase()}`, margin, cursor);
+    doc.text(`Expert AI: ${cleanTextForPDF(subject.toUpperCase())}`, margin, cursor);
     cursor += 15;
 
-    doc.setFontSize(14);
-    doc.text('RESUMO ESTRATÉGICO', margin, cursor);
-    cursor += 7;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const summaryLines = doc.splitTextToSize(research.summary, pageWidth - (margin * 2));
-    doc.text(summaryLines, margin, cursor);
-    cursor += summaryLines.length * 5 + 10;
+    const sections = [
+      { title: 'RESUMO ESTRATEGICO', content: research.summary },
+      { title: 'EVOLUCAO HISTORICA', content: research.history },
+      { title: 'VISAO DE FUTURO', content: research.futureVision },
+      { title: 'OPORTUNIDADES DE NEGOCIO', content: research.businessOpportunities }
+    ];
 
-    checkNewPage(20);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('EVOLUÇÃO HISTÓRICA', margin, cursor);
-    cursor += 7;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const historyLines = doc.splitTextToSize(research.history, pageWidth - (margin * 2));
-    doc.text(historyLines, margin, cursor);
-    cursor += historyLines.length * 5 + 10;
-
-    checkNewPage(20);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('OPORTUNIDADES DE NEGÓCIO', margin, cursor);
-    cursor += 7;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const oppLines = doc.splitTextToSize(research.businessOpportunities, pageWidth - (margin * 2));
-    doc.text(oppLines, margin, cursor);
-    cursor += oppLines.length * 5 + 15;
-
-    checkNewPage(20);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REFERÊNCIAS NACIONAIS & OPINIÕES', margin, cursor);
-    cursor += 10;
-    research.brazilianReferences.forEach(ref => {
+    sections.forEach(sec => {
       checkNewPage(20);
-      doc.setFontSize(10);
+      doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(`> ${ref.name}: ${ref.videoTitle}`, margin, cursor);
-      cursor += 6;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      const relLines = doc.splitTextToSize(ref.relevance, pageWidth - (margin * 2));
-      doc.text(relLines, margin, cursor);
-      cursor += relLines.length * 5 + 8;
-    });
-
-    checkNewPage(30);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REFERÊNCIAS GLOBAIS & OPINIÕES', margin, cursor);
-    cursor += 10;
-    research.globalReferences.forEach(ref => {
-      checkNewPage(20);
+      doc.text(sec.title, margin, cursor);
+      cursor += 8;
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`> ${ref.name}: ${ref.videoTitle}`, margin, cursor);
-      cursor += 6;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      const relLines = doc.splitTextToSize(ref.relevance, pageWidth - (margin * 2));
-      doc.text(relLines, margin, cursor);
-      cursor += relLines.length * 5 + 8;
+      const lines = doc.splitTextToSize(cleanTextForPDF(sec.content), pageWidth - (margin * 2));
+      lines.forEach((line: string) => {
+        if (cursor > 280) { doc.addPage(); cursor = 20; }
+        doc.text(line, margin, cursor);
+        cursor += 5;
+      });
+      cursor += 10;
     });
 
     if (scriptsRef.current?.master) {
@@ -205,19 +171,19 @@ export default function App() {
       cursor = 20;
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('ROTEIRO DA IMERSÃO (MASTERCLASS)', margin, cursor);
+      doc.text('ROTEIRO DA IMERSAO (MASTERCLASS)', margin, cursor);
       cursor += 10;
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      const scriptLines = doc.splitTextToSize(scriptsRef.current.master, pageWidth - (margin * 2));
-      for (let i = 0; i < scriptLines.length; i++) {
+      const scriptLines = doc.splitTextToSize(cleanTextForPDF(scriptsRef.current.master), pageWidth - (margin * 2));
+      scriptLines.forEach((line: string) => {
         if (cursor > 280) { doc.addPage(); cursor = 20; }
-        doc.text(scriptLines[i], margin, cursor);
+        doc.text(line, margin, cursor);
         cursor += 4.5;
-      }
+      });
     }
 
-    doc.save(`ExpertAI_Dossie_Completo_${subject.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`ExpertAI_Dossie_${subject.replace(/\s+/g, '_')}.pdf`);
   };
 
   const handleStart = async (e: React.FormEvent) => {
@@ -233,13 +199,13 @@ export default function App() {
     try {
       setError(null);
       setProgress(5);
-      setEstimatedSeconds(35); 
+      setEstimatedSeconds(90); 
       setStep(GenerationStep.RESEARCHING);
       
       const researchData = await gemini.researchSubject(subject);
       setResearch(researchData);
-      setProgress(35);
-      setEstimatedSeconds(20);
+      setProgress(30);
+      setEstimatedSeconds(60);
       
       setStep(GenerationStep.WRITING_SCRIPTS);
       const [scriptRes, scriptComp] = await Promise.all([
@@ -248,8 +214,8 @@ export default function App() {
       ]);
       scriptsRef.current = { pocket: scriptRes, master: scriptComp };
       
-      setProgress(65);
-      setEstimatedSeconds(10);
+      setProgress(50);
+      setEstimatedSeconds(30);
 
       setStep(GenerationStep.GENERATING_MEDIA);
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -268,15 +234,15 @@ export default function App() {
       const audioCompUrl = URL.createObjectURL(gemini.createWavBlob(bufComp));
 
       setMedias([
-        { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast (Essencial)', description: 'O resumo estratégico em segundos.', audioUrl: audioResUrl },
-        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão (Masterclass)', description: 'Explicação profunda e detalhada.', audioUrl: audioCompUrl }
+        { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast (Essencial)', description: '3 a 5 minutos de puro conteúdo estratégico.', audioUrl: audioResUrl },
+        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão (Masterclass)', description: '10 a 20 minutos de profundidade técnica e histórica.', audioUrl: audioCompUrl }
       ]);
 
       setProgress(100);
       setStep(GenerationStep.COMPLETED);
     } catch (err: any) {
-      console.error("Erro capturado:", err);
-      setError({ title: "Erro no Processamento", message: err.message || "Ocorreu um erro inesperado." });
+      console.error("Erro:", err);
+      setError({ title: "Falha na Geração", message: "Certifique-se que sua chave de API possui créditos ou tente novamente." });
       setStep(GenerationStep.ERROR);
     }
   };
@@ -291,7 +257,7 @@ export default function App() {
             </div>
             <h1 className="text-xl font-black tracking-tighter uppercase">Expert <span className="text-purple-500 italic">AI</span></h1>
           </div>
-          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Ultra Fidelity v9.0</div>
+          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">FIDELITY v11.0</div>
         </div>
       </nav>
 
@@ -300,7 +266,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto text-center py-24 animate-in fade-in zoom-in duration-700">
             <h2 className="text-6xl md:text-8xl font-black mb-8 leading-[0.85] tracking-tighter">Domine qualquer <span className="gradient-text">Assunto.</span></h2>
             <p className="text-lg text-gray-400 mb-12 max-w-xl mx-auto leading-relaxed">
-              Pesquisa avançada e síntese de voz cinematográfica em uma experiência ultra rápida.
+              Pesquisas imersivas e áudios de longa duração para uma experiência de aprendizado definitiva.
             </p>
             
             <form onSubmit={handleStart} className="relative max-w-2xl mx-auto">
@@ -308,12 +274,12 @@ export default function App() {
                 type="text" 
                 value={subject} 
                 onChange={e => setSubject(e.target.value)} 
-                placeholder="O que você quer aprender agora?" 
+                placeholder="Qual tema você deseja dominar?" 
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-8 text-xl focus:ring-2 focus:ring-purple-600 outline-none transition-all placeholder:text-gray-700 shadow-2xl" 
               />
               <button 
                 type="submit" 
-                className="w-full sm:w-auto mt-4 sm:mt-0 sm:absolute sm:right-3 sm:top-3 sm:bottom-3 px-10 bg-purple-600 rounded-xl font-black hover:bg-purple-500 transition-all flex items-center justify-center gap-2"
+                className="w-full sm:w-auto mt-4 sm:mt-0 sm:absolute sm:right-3 sm:top-3 sm:bottom-3 px-10 bg-purple-600 rounded-xl font-black hover:bg-purple-500 transition-all flex items-center justify-center gap-2 shadow-xl shadow-purple-900/40"
               >
                 Gerar <i className="fas fa-bolt text-sm"></i>
               </button>
@@ -329,8 +295,8 @@ export default function App() {
                  <span className="absolute -bottom-4 text-[10px] font-black text-purple-400">{progress}%</span>
                </div>
              </div>
-             <h3 className="text-4xl font-black mb-4 tracking-tighter uppercase">Gerando Inteligência...</h3>
-             <p className="mb-12 text-gray-500 font-bold uppercase text-xs">Tempo estimado restante: {estimatedSeconds}s</p>
+             <h3 className="text-4xl font-black mb-4 tracking-tighter uppercase">Construindo Conhecimento...</h3>
+             <p className="mb-12 text-gray-500 font-bold uppercase text-xs">Tempo estimado: {estimatedSeconds}s</p>
              
              <div className="max-w-md mx-auto mb-16">
                <div className="progress-bar mb-10">
@@ -351,12 +317,12 @@ export default function App() {
           <div className="space-y-16 animate-in fade-in slide-in-from-bottom-10 duration-1000">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-10 gap-6">
               <div>
-                <span className="text-purple-500 text-xs font-black uppercase tracking-[0.3em] mb-2 block">Dossiê Estratégico</span>
+                <span className="text-purple-500 text-xs font-black uppercase tracking-[0.3em] mb-2 block">Dossiê de Especialista</span>
                 <h2 className="text-6xl md:text-7xl font-black capitalize leading-none tracking-tighter">{subject}</h2>
               </div>
               <div className="flex gap-4">
                 <button onClick={downloadPDF} className="px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3 text-white shadow-xl shadow-blue-900/20">
-                  <i className="fas fa-file-pdf text-lg"></i> BAIXAR PDF COMPLETO
+                  <i className="fas fa-file-pdf text-lg"></i> PDF DE ESTUDO
                 </button>
                 <button onClick={() => setStep(GenerationStep.IDLE)} className="px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3">
                   <i className="fas fa-search"></i> NOVA BUSCA
@@ -367,11 +333,11 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2 space-y-12">
                 <section className="glass-panel p-10 md:p-14 rounded-[3rem] border-l-8 border-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent">
-                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4"><i className="fas fa-book-open text-blue-500"></i> Inteligência e Contexto</h3>
+                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4 uppercase tracking-tighter"><i className="fas fa-book-open text-blue-500"></i> Inteligência e Pesquisa</h3>
                   <div className="text-gray-200 space-y-10 leading-relaxed">
                     <p className="text-xl md:text-2xl font-bold text-white leading-tight">{research.summary}</p>
                     <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
-                       <h4 className="text-white font-black mb-4 uppercase text-xs tracking-widest opacity-40">Histórico & Evolução</h4>
+                       <h4 className="text-white font-black mb-4 uppercase text-xs tracking-widest opacity-40">Historico</h4>
                        <p className="text-sm italic font-medium opacity-80 whitespace-pre-line leading-relaxed">{research.history}</p>
                     </div>
                   </div>
@@ -386,10 +352,10 @@ export default function App() {
                     <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.4)]">
                       <i className="fas fa-chart-line text-white text-xl"></i>
                     </div>
-                    <h3 className="text-2xl font-black uppercase tracking-tighter">Oportunidades Estratégicas</h3>
+                    <h3 className="text-2xl font-black uppercase tracking-tighter">Oportunidades de Negócio</h3>
                   </div>
-                  <div className="text-gray-300 text-lg leading-relaxed font-medium whitespace-pre-line space-y-8">
-                    {research.businessOpportunities.split('\n').filter(l => l.trim()).map((opt, i) => (
+                  <div className="text-gray-300 text-lg leading-relaxed font-medium space-y-6">
+                    {research.businessOpportunities.split('\n\n').filter(l => l.trim()).map((opt, i) => (
                       <div key={i} className="p-8 bg-white/10 rounded-3xl border border-white/10 hover:border-orange-500/40 transition-all shadow-xl leading-relaxed">
                         {opt}
                       </div>
@@ -400,17 +366,28 @@ export default function App() {
 
               <div className="space-y-8">
                 <div className="glass-panel p-8 rounded-[2.5rem] border-t border-purple-500/20">
-                  <h3 className="text-xl font-black mb-8 flex items-center gap-3"><i className="fas fa-microphone-alt text-red-500"></i> Vídeos & Opiniões</h3>
+                  <h3 className="text-xl font-black mb-8 flex items-center gap-3 uppercase tracking-tighter"><i className="fas fa-video text-red-500"></i> Referências Visuais</h3>
                   <div className="space-y-6">
-                    <span className="text-[10px] font-black uppercase text-gray-600 tracking-widest block border-b border-white/5 pb-2">Mercado Nacional</span>
+                    <span className="text-[10px] font-black uppercase text-gray-600 tracking-widest block border-b border-white/5 pb-2">Conteúdo Nacional</span>
                     {research.brazilianReferences.map((p, i) => <ReferenceCard key={`b-${i}`} person={p} />)}
                     <div className="h-8"></div>
-                    <span className="text-[10px] font-black uppercase text-gray-600 tracking-widest block border-b border-white/5 pb-2">Mercado Global</span>
+                    <span className="text-[10px] font-black uppercase text-gray-600 tracking-widest block border-b border-white/5 pb-2">Benchmark Global</span>
                     {research.globalReferences.map((p, i) => <ReferenceCard key={`g-${i}`} person={p} />)}
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {step === GenerationStep.ERROR && (
+          <div className="max-w-2xl mx-auto text-center py-24 glass-panel rounded-[3rem] border-red-500/30">
+            <i className="fas fa-exclamation-triangle text-6xl text-red-500 mb-8"></i>
+            <h3 className="text-3xl font-black mb-4 uppercase">{error?.title || "Erro Inesperado"}</h3>
+            <p className="text-gray-400 mb-8">{error?.message || "Tente novamente ou verifique sua conexão."}</p>
+            <button onClick={() => setStep(GenerationStep.IDLE)} className="px-10 py-4 bg-white/10 rounded-xl font-black uppercase text-xs hover:bg-white/20 transition-all">
+              Voltar ao Início
+            </button>
           </div>
         )}
       </main>

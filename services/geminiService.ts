@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { ResearchResult } from "../types";
 
@@ -35,22 +34,22 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
     
     const prompt = `Realize uma pesquisa profunda e estratégica sobre: "${subject}" em PORTUGUÊS (BRASIL).
 
-    REGRAS CRÍTICAS PARA VÍDEOS (YOUTUBE):
-    1. Use a ferramenta 'googleSearch' para encontrar os vídeos.
-    2. NUNCA invente links. Copie EXATAMENTE a URL encontrada.
-    3. Formato: https://www.youtube.com/watch?v=...
+    REGRAS CRÍTICAS:
+    1. Use 'googleSearch' para encontrar vídeos REAIS.
+    2. No campo 'businessOpportunities', escreva pelo menos 3 parágrafos claros, cada um separado por DUAS QUEBRAS DE LINHA (\\n\\n). 
+    3. NÃO use emojis em nenhum campo de texto para garantir compatibilidade com PDF.
 
     ESTRUTURA DO JSON:
-    - summary: Resumo estratégico de alto impacto.
-    - history: Contexto histórico detalhado.
-    - futureVision: Visão de futuro para os próximos 5 a 10 anos.
-    - businessOpportunities: Mínimo de 3 oportunidades de negócio. Use emojis no início de cada uma.
-    - globalReferences: 3 vídeos internacionais reais.
-    - brazilianReferences: 3 vídeos brasileiros reais.
+    - summary: Resumo estratégico.
+    - history: Contexto histórico.
+    - futureVision: Visão de futuro.
+    - businessOpportunities: Parágrafos detalhados separados por \\n\\n.
+    - globalReferences: 3 vídeos reais.
+    - brazilianReferences: 3 vídeos reais.
     - facts: 5 fatos curiosos.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", // Mudado para Flash para velocidade máxima
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -96,13 +95,7 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
     });
 
     const result = JSON.parse(response.text);
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    const sources = groundingChunks?.map((chunk: any) => ({
-      title: chunk.web?.title || 'Fonte Consultada',
-      url: chunk.web?.uri
-    })).filter((s: any) => s.url) || [];
-
-    return { ...result, sources };
+    return result;
   });
 };
 
@@ -110,21 +103,20 @@ export const generateDetailedScript = async (subject: string, mode: 'resumido' |
   return withRetry(async () => {
     const ai = getAI();
     
-    let prompt = "";
-    if (mode === 'completo') {
-      prompt = `Você é um apresentador de podcast de elite. Escreva um roteiro ENVOLVENTE sobre: "${subject}". 
-      Discorra sobre a evolução histórica, cenário atual, oportunidades e futuro.
-      Escreva apenas o texto que deve ser falado. Sem marcações técnicas.`;
-    } else {
-      prompt = `Escreva um roteiro de podcast resumido sobre: "${subject}" em PORTUGUÊS. Apenas a fala.`;
-    }
+    const wordCount = mode === 'completo' ? "1500 a 2500 palavras (para 10-20 minutos)" : "500 a 800 palavras (para 3-5 minutos)";
+    const prompt = `Você é um apresentador de podcast de elite. Escreva um roteiro ${mode.toUpperCase()} sobre: "${subject}". 
+    O roteiro deve ter aproximadamente ${wordCount}.
+    
+    IMPORTANTE:
+    - Linguagem fluida e profissional.
+    - NÃO use emojis ou marcações de cena (ex: [música], [pausa]). Apenas o texto falado.
+    - AO FINAL, obrigatoriamente inclua esta frase exata: "Obrigado por nos acompanhar nesta jornada. Esperamos você para uma nova dose de conhecimento com o EXPERT AI."
+    
+    Escreva apenas o texto que deve ser falado em PORTUGUÊS.`;
     
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", // Mudado para Flash para velocidade máxima
-      contents: prompt,
-      config: {
-        thinkingConfig: { thinkingBudget: 0 } // Desativa thinking para ser instantâneo
-      }
+      model: "gemini-3-flash-preview",
+      contents: prompt
     });
     
     return response.text;
