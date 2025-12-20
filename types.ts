@@ -4,6 +4,7 @@ export interface ReferencePerson {
   relevance: string;
   videoTitle: string;
   videoUrl: string;
+  publications: string[];
 }
 
 export interface ResearchResult {

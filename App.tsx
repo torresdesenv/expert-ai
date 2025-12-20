@@ -34,6 +34,14 @@ const ReferenceCard: React.FC<{ person: ReferencePerson }> = ({ person }) => (
       <i className="fab fa-youtube text-red-500 text-xs flex-shrink-0"></i>
     </div>
     <p className="text-[11px] text-gray-400 line-clamp-2 leading-tight">{person.relevance}</p>
+    {person.publications && person.publications.length > 0 && (
+      <div className="mt-1">
+        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Obras:</span>
+        <ul className="text-[10px] text-gray-300 list-disc list-inside">
+          {person.publications.map((pub, i) => <li key={i} className="truncate">{pub}</li>)}
+        </ul>
+      </div>
+    )}
     <a href={person.videoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-[10px] font-black text-blue-400 hover:text-blue-300 flex items-center gap-1 uppercase">
       <i className="fas fa-play"></i> Assistir Vídeo
     </a>
@@ -111,13 +119,10 @@ export default function App() {
     return () => clearInterval(timer);
   }, [estimatedSeconds, step]);
 
-  // Remove emojis e caracteres especiais agressivamente para o PDF
   const cleanTextForPDF = (text: string) => {
+    if (!text) return "";
     return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDDFF])/g, '')
-               .replace(/[^\x00-\x7F]/g, (char) => {
-                 // Mantém acentos básicos do PT-BR mas remove o resto
-                 return /[áàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]/.test(char) ? char : '';
-               })
+               .replace(/[^\x00-\x7FáàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\.,!\?;:()"-]/g, '')
                .trim();
   };
 
@@ -139,18 +144,18 @@ export default function App() {
 
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Expert AI: ${cleanTextForPDF(subject.toUpperCase())}`, margin, cursor);
+    doc.text(`Expert AI Dossie: ${cleanTextForPDF(subject.toUpperCase())}`, margin, cursor);
     cursor += 15;
 
     const sections = [
       { title: 'RESUMO ESTRATEGICO', content: research.summary },
-      { title: 'EVOLUCAO HISTORICA', content: research.history },
+      { title: 'HISTORICO E EVOLUCAO', content: research.history },
       { title: 'VISAO DE FUTURO', content: research.futureVision },
       { title: 'OPORTUNIDADES DE NEGOCIO', content: research.businessOpportunities }
     ];
 
     sections.forEach(sec => {
-      checkNewPage(20);
+      checkNewPage(25);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text(sec.title, margin, cursor);
@@ -163,7 +168,65 @@ export default function App() {
         doc.text(line, margin, cursor);
         cursor += 5;
       });
-      cursor += 10;
+      cursor += 12;
+    });
+
+    // Seção de Referências Mundiais e Suas Publicações
+    checkNewPage(20);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('REFERENCIAS MUNDIAIS E OBRAS', margin, cursor);
+    cursor += 10;
+    research.globalReferences.forEach(ref => {
+      checkNewPage(30);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(cleanTextForPDF(ref.name), margin, cursor);
+      cursor += 6;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      const relLines = doc.splitTextToSize(cleanTextForPDF(ref.relevance), pageWidth - (margin * 2));
+      doc.text(relLines, margin, cursor);
+      cursor += relLines.length * 5 + 2;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('Principais Publicações:', margin, cursor);
+      cursor += 5;
+      doc.setFont('helvetica', 'normal');
+      ref.publications.forEach(pub => {
+        doc.text(`- ${cleanTextForPDF(pub)}`, margin + 5, cursor);
+        cursor += 4.5;
+      });
+      cursor += 5;
+    });
+
+    // Seção de Referências Nacionais e Suas Publicações
+    checkNewPage(20);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('REFERENCIAS NACIONAIS E OBRAS', margin, cursor);
+    cursor += 10;
+    research.brazilianReferences.forEach(ref => {
+      checkNewPage(30);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(cleanTextForPDF(ref.name), margin, cursor);
+      cursor += 6;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      const relLines = doc.splitTextToSize(cleanTextForPDF(ref.relevance), pageWidth - (margin * 2));
+      doc.text(relLines, margin, cursor);
+      cursor += relLines.length * 5 + 2;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('Principais Publicações:', margin, cursor);
+      cursor += 5;
+      doc.setFont('helvetica', 'normal');
+      ref.publications.forEach(pub => {
+        doc.text(`- ${cleanTextForPDF(pub)}`, margin + 5, cursor);
+        cursor += 4.5;
+      });
+      cursor += 5;
     });
 
     if (scriptsRef.current?.master) {
@@ -171,7 +234,7 @@ export default function App() {
       cursor = 20;
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('ROTEIRO DA IMERSAO (MASTERCLASS)', margin, cursor);
+      doc.text('ROTEIRO DA MASTERCLASS (INTEGRA)', margin, cursor);
       cursor += 10;
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
@@ -183,7 +246,7 @@ export default function App() {
       });
     }
 
-    doc.save(`ExpertAI_Dossie_${subject.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`ExpertAI_${subject.replace(/\s+/g, '_')}.pdf`);
   };
 
   const handleStart = async (e: React.FormEvent) => {
@@ -199,13 +262,13 @@ export default function App() {
     try {
       setError(null);
       setProgress(5);
-      setEstimatedSeconds(90); 
+      setEstimatedSeconds(150); 
       setStep(GenerationStep.RESEARCHING);
       
       const researchData = await gemini.researchSubject(subject);
       setResearch(researchData);
       setProgress(30);
-      setEstimatedSeconds(60);
+      setEstimatedSeconds(100);
       
       setStep(GenerationStep.WRITING_SCRIPTS);
       const [scriptRes, scriptComp] = await Promise.all([
@@ -215,7 +278,7 @@ export default function App() {
       scriptsRef.current = { pocket: scriptRes, master: scriptComp };
       
       setProgress(50);
-      setEstimatedSeconds(30);
+      setEstimatedSeconds(50);
 
       setStep(GenerationStep.GENERATING_MEDIA);
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -234,15 +297,15 @@ export default function App() {
       const audioCompUrl = URL.createObjectURL(gemini.createWavBlob(bufComp));
 
       setMedias([
-        { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast (Essencial)', description: '3 a 5 minutos de puro conteúdo estratégico.', audioUrl: audioResUrl },
-        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão (Masterclass)', description: '10 a 20 minutos de profundidade técnica e histórica.', audioUrl: audioCompUrl }
+        { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast', description: 'Conteúdo de 3 a 5 minutos focado no essencial.', audioUrl: audioResUrl },
+        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão Masterclass', description: 'Conteúdo profundo de 10 a 20 minutos.', audioUrl: audioCompUrl }
       ]);
 
       setProgress(100);
       setStep(GenerationStep.COMPLETED);
     } catch (err: any) {
-      console.error("Erro:", err);
-      setError({ title: "Falha na Geração", message: "Certifique-se que sua chave de API possui créditos ou tente novamente." });
+      console.error("Erro no processamento:", err);
+      setError({ title: "Falha na Geração", message: err.message || "Tente novamente em alguns instantes." });
       setStep(GenerationStep.ERROR);
     }
   };
@@ -257,7 +320,7 @@ export default function App() {
             </div>
             <h1 className="text-xl font-black tracking-tighter uppercase">Expert <span className="text-purple-500 italic">AI</span></h1>
           </div>
-          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">FIDELITY v11.0</div>
+          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">ULTRA FIDELITY v13.0</div>
         </div>
       </nav>
 
@@ -266,7 +329,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto text-center py-24 animate-in fade-in zoom-in duration-700">
             <h2 className="text-6xl md:text-8xl font-black mb-8 leading-[0.85] tracking-tighter">Domine qualquer <span className="gradient-text">Assunto.</span></h2>
             <p className="text-lg text-gray-400 mb-12 max-w-xl mx-auto leading-relaxed">
-              Pesquisas imersivas e áudios de longa duração para uma experiência de aprendizado definitiva.
+              Pesquisas ultra imersivas com análise de benchmarks globais e áudios de longa duração.
             </p>
             
             <form onSubmit={handleStart} className="relative max-w-2xl mx-auto">
@@ -274,14 +337,14 @@ export default function App() {
                 type="text" 
                 value={subject} 
                 onChange={e => setSubject(e.target.value)} 
-                placeholder="Qual tema você deseja dominar?" 
+                placeholder="Qual conhecimento você quer extrair hoje?" 
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-8 text-xl focus:ring-2 focus:ring-purple-600 outline-none transition-all placeholder:text-gray-700 shadow-2xl" 
               />
               <button 
                 type="submit" 
                 className="w-full sm:w-auto mt-4 sm:mt-0 sm:absolute sm:right-3 sm:top-3 sm:bottom-3 px-10 bg-purple-600 rounded-xl font-black hover:bg-purple-500 transition-all flex items-center justify-center gap-2 shadow-xl shadow-purple-900/40"
               >
-                Gerar <i className="fas fa-bolt text-sm"></i>
+                Gerar Especialista <i className="fas fa-bolt text-sm"></i>
               </button>
             </form>
           </div>
@@ -295,8 +358,8 @@ export default function App() {
                  <span className="absolute -bottom-4 text-[10px] font-black text-purple-400">{progress}%</span>
                </div>
              </div>
-             <h3 className="text-4xl font-black mb-4 tracking-tighter uppercase">Construindo Conhecimento...</h3>
-             <p className="mb-12 text-gray-500 font-bold uppercase text-xs">Tempo estimado: {estimatedSeconds}s</p>
+             <h3 className="text-4xl font-black mb-4 tracking-tighter uppercase">Mineração de Dados Ativa...</h3>
+             <p className="mb-12 text-gray-500 font-bold uppercase text-xs">Tempo aproximado: {estimatedSeconds}s</p>
              
              <div className="max-w-md mx-auto mb-16">
                <div className="progress-bar mb-10">
@@ -322,7 +385,7 @@ export default function App() {
               </div>
               <div className="flex gap-4">
                 <button onClick={downloadPDF} className="px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3 text-white shadow-xl shadow-blue-900/20">
-                  <i className="fas fa-file-pdf text-lg"></i> PDF DE ESTUDO
+                  <i className="fas fa-file-pdf text-lg"></i> PDF COMPLETO
                 </button>
                 <button onClick={() => setStep(GenerationStep.IDLE)} className="px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3">
                   <i className="fas fa-search"></i> NOVA BUSCA
@@ -333,11 +396,11 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2 space-y-12">
                 <section className="glass-panel p-10 md:p-14 rounded-[3rem] border-l-8 border-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent">
-                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4 uppercase tracking-tighter"><i className="fas fa-book-open text-blue-500"></i> Inteligência e Pesquisa</h3>
+                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4 uppercase tracking-tighter"><i className="fas fa-book-open text-blue-500"></i> Inteligência Estratégica</h3>
                   <div className="text-gray-200 space-y-10 leading-relaxed">
                     <p className="text-xl md:text-2xl font-bold text-white leading-tight">{research.summary}</p>
                     <div className="bg-white/5 p-8 rounded-3xl border border-white/10">
-                       <h4 className="text-white font-black mb-4 uppercase text-xs tracking-widest opacity-40">Historico</h4>
+                       <h4 className="text-white font-black mb-4 uppercase text-xs tracking-widest opacity-40">Evolução do Tema</h4>
                        <p className="text-sm italic font-medium opacity-80 whitespace-pre-line leading-relaxed">{research.history}</p>
                     </div>
                   </div>
@@ -348,15 +411,15 @@ export default function App() {
                 </div>
 
                 <section className="glass-panel p-10 md:p-14 rounded-[3rem] border-l-8 border-orange-500 bg-orange-500/5">
-                  <div className="flex items-center gap-4 mb-8">
+                  <div className="flex items-center gap-4 mb-10">
                     <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.4)]">
                       <i className="fas fa-chart-line text-white text-xl"></i>
                     </div>
                     <h3 className="text-2xl font-black uppercase tracking-tighter">Oportunidades de Negócio</h3>
                   </div>
-                  <div className="text-gray-300 text-lg leading-relaxed font-medium space-y-6">
+                  <div className="space-y-6">
                     {research.businessOpportunities.split('\n\n').filter(l => l.trim()).map((opt, i) => (
-                      <div key={i} className="p-8 bg-white/10 rounded-3xl border border-white/10 hover:border-orange-500/40 transition-all shadow-xl leading-relaxed">
+                      <div key={i} className="p-10 bg-white/5 rounded-[2.5rem] border border-white/10 hover:border-orange-500/30 transition-all shadow-xl leading-relaxed text-lg font-medium">
                         {opt}
                       </div>
                     ))}
@@ -366,7 +429,7 @@ export default function App() {
 
               <div className="space-y-8">
                 <div className="glass-panel p-8 rounded-[2.5rem] border-t border-purple-500/20">
-                  <h3 className="text-xl font-black mb-8 flex items-center gap-3 uppercase tracking-tighter"><i className="fas fa-video text-red-500"></i> Referências Visuais</h3>
+                  <h3 className="text-xl font-black mb-8 flex items-center gap-3 uppercase tracking-tighter"><i className="fas fa-video text-red-500"></i> Benchmarks & Referências</h3>
                   <div className="space-y-6">
                     <span className="text-[10px] font-black uppercase text-gray-600 tracking-widest block border-b border-white/5 pb-2">Conteúdo Nacional</span>
                     {research.brazilianReferences.map((p, i) => <ReferenceCard key={`b-${i}`} person={p} />)}
@@ -383,10 +446,10 @@ export default function App() {
         {step === GenerationStep.ERROR && (
           <div className="max-w-2xl mx-auto text-center py-24 glass-panel rounded-[3rem] border-red-500/30">
             <i className="fas fa-exclamation-triangle text-6xl text-red-500 mb-8"></i>
-            <h3 className="text-3xl font-black mb-4 uppercase">{error?.title || "Erro Inesperado"}</h3>
-            <p className="text-gray-400 mb-8">{error?.message || "Tente novamente ou verifique sua conexão."}</p>
-            <button onClick={() => setStep(GenerationStep.IDLE)} className="px-10 py-4 bg-white/10 rounded-xl font-black uppercase text-xs hover:bg-white/20 transition-all">
-              Voltar ao Início
+            <h3 className="text-3xl font-black mb-4 uppercase">{error?.title || "Ops! Algo deu errado"}</h3>
+            <p className="text-gray-400 mb-8 text-lg">{error?.message || "Houve um problema. Tente novamente."}</p>
+            <button onClick={() => setStep(GenerationStep.IDLE)} className="px-12 py-5 bg-white/10 rounded-2xl font-black uppercase text-xs hover:bg-white/20 transition-all border border-white/10">
+              Reiniciar Processo
             </button>
           </div>
         )}

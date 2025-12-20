@@ -36,16 +36,17 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
 
     REGRAS CRÍTICAS:
     1. Use 'googleSearch' para encontrar vídeos REAIS.
-    2. No campo 'businessOpportunities', escreva pelo menos 3 parágrafos claros, cada um separado por DUAS QUEBRAS DE LINHA (\\n\\n). 
-    3. NÃO use emojis em nenhum campo de texto para garantir compatibilidade com PDF.
+    2. No campo 'businessOpportunities', escreva pelo menos 3 parágrafos detalhados, cada um separado por DUAS QUEBRAS DE LINHA (\\n\\n). 
+    3. Para cada referência (global e brasileira), liste as 3 principais publicações (livros, artigos científicos, cursos famosos ou projetos de destaque).
+    4. NÃO USE EMOJIS em nenhum campo para garantir compatibilidade com PDF.
 
     ESTRUTURA DO JSON:
-    - summary: Resumo estratégico.
-    - history: Contexto histórico.
-    - futureVision: Visão de futuro.
-    - businessOpportunities: Parágrafos detalhados separados por \\n\\n.
-    - globalReferences: 3 vídeos reais.
-    - brazilianReferences: 3 vídeos reais.
+    - summary: Resumo estratégico de alto impacto.
+    - history: Contexto histórico e evolução.
+    - futureVision: Visão de futuro para os próximos anos.
+    - businessOpportunities: Mínimo de 3 parágrafos detalhados.
+    - globalReferences: 3 referências mundiais com nome, relevância, título de vídeo, URL e suas 3 principais publicações.
+    - brazilianReferences: 3 referências brasileiras com nome, relevância, título de vídeo, URL e suas 3 principais publicações.
     - facts: 5 fatos curiosos.`;
 
     const response = await ai.models.generateContent({
@@ -70,9 +71,10 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
                   name: { type: Type.STRING },
                   relevance: { type: Type.STRING },
                   videoTitle: { type: Type.STRING },
-                  videoUrl: { type: Type.STRING }
+                  videoUrl: { type: Type.STRING },
+                  publications: { type: Type.ARRAY, items: { type: Type.STRING } }
                 },
-                required: ["name", "relevance", "videoTitle", "videoUrl"]
+                required: ["name", "relevance", "videoTitle", "videoUrl", "publications"]
               }
             },
             brazilianReferences: {
@@ -83,9 +85,10 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
                   name: { type: Type.STRING },
                   relevance: { type: Type.STRING },
                   videoTitle: { type: Type.STRING },
-                  videoUrl: { type: Type.STRING }
+                  videoUrl: { type: Type.STRING },
+                  publications: { type: Type.ARRAY, items: { type: Type.STRING } }
                 },
-                required: ["name", "relevance", "videoTitle", "videoUrl"]
+                required: ["name", "relevance", "videoTitle", "videoUrl", "publications"]
               }
             }
           },
@@ -94,25 +97,25 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
       }
     });
 
-    const result = JSON.parse(response.text);
-    return result;
+    return JSON.parse(response.text);
   });
 };
 
 export const generateDetailedScript = async (subject: string, mode: 'resumido' | 'completo'): Promise<string> => {
   return withRetry(async () => {
     const ai = getAI();
+    const wordTarget = mode === 'completo' ? "pelo menos 2500 palavras para uma duração de 15 a 20 minutos" : "pelo menos 750 palavras para uma duração de 4 a 5 minutos";
     
-    const wordCount = mode === 'completo' ? "1500 a 2500 palavras (para 10-20 minutos)" : "500 a 800 palavras (para 3-5 minutos)";
-    const prompt = `Você é um apresentador de podcast de elite. Escreva um roteiro ${mode.toUpperCase()} sobre: "${subject}". 
-    O roteiro deve ter aproximadamente ${wordCount}.
+    const prompt = `Você é um apresentador de podcast profissional e carismático. Escreva um roteiro narrativo COMPLETO e EXTENSO sobre: "${subject}".
     
-    IMPORTANTE:
-    - Linguagem fluida e profissional.
-    - NÃO use emojis ou marcações de cena (ex: [música], [pausa]). Apenas o texto falado.
-    - AO FINAL, obrigatoriamente inclua esta frase exata: "Obrigado por nos acompanhar nesta jornada. Esperamos você para uma nova dose de conhecimento com o EXPERT AI."
+    META DE TAMANHO: O texto deve ter ${wordTarget}.
     
-    Escreva apenas o texto que deve ser falado em PORTUGUÊS.`;
+    INSTRUÇÕES:
+    1. Não use emojis ou marcações de produção.
+    2. Escreva apenas o que deve ser lido.
+    3. Ao FINAL do roteiro, inclua exatamente: "Obrigado por nos acompanhar nesta jornada. Esperamos você para uma nova dose de conhecimento com o EXPERT AI."
+    
+    Língua: Português Brasileiro.`;
     
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -140,7 +143,7 @@ export const generateSpeech = async (text: string): Promise<string> => {
     });
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!base64Audio) throw new Error("Erro na síntese de voz.");
+    if (!base64Audio) throw new Error("Falha na síntese de voz.");
     return base64Audio;
   });
 };
