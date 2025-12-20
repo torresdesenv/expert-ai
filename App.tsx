@@ -66,7 +66,7 @@ const MediaCard: React.FC<{ media: GeneratedMedia, subject: string }> = ({ media
           const a = document.createElement('a');
           a.href = media.audioUrl;
           const safeName = subject.replace(/\s+/g, '_');
-          a.download = `ExpertAI_${safeName}_${media.duration}.wav`;
+          a.download = `ExpertAI_${safeName}_${media.duration === 'completo' ? 'MASTER' : 'POCKET'}.wav`;
           a.click();
         }} 
         className="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black transition-all flex items-center justify-center gap-2"
@@ -128,13 +128,11 @@ export default function App() {
       return false;
     };
 
-    // Header
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text(`Expert AI: ${subject.toUpperCase()}`, margin, cursor);
     cursor += 15;
 
-    // Resumo
     doc.setFontSize(14);
     doc.text('RESUMO ESTRATÉGICO', margin, cursor);
     cursor += 7;
@@ -144,7 +142,6 @@ export default function App() {
     doc.text(summaryLines, margin, cursor);
     cursor += summaryLines.length * 5 + 10;
 
-    // Histórico
     checkNewPage(20);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
@@ -156,7 +153,6 @@ export default function App() {
     doc.text(historyLines, margin, cursor);
     cursor += historyLines.length * 5 + 10;
 
-    // Oportunidades
     checkNewPage(20);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
@@ -168,43 +164,42 @@ export default function App() {
     doc.text(oppLines, margin, cursor);
     cursor += oppLines.length * 5 + 15;
 
-    // Referências Nacionais
-    checkNewPage(30);
+    checkNewPage(20);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('REFERÊNCIAS NACIONAIS (BRASIL)', margin, cursor);
+    doc.text('REFERÊNCIAS NACIONAIS & OPINIÕES', margin, cursor);
     cursor += 10;
-    doc.setFontSize(10);
     research.brazilianReferences.forEach(ref => {
-      checkNewPage(15);
+      checkNewPage(20);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${ref.name} - ${ref.videoTitle}`, margin, cursor);
-      cursor += 5;
+      doc.text(`> ${ref.name}: ${ref.videoTitle}`, margin, cursor);
+      cursor += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       const relLines = doc.splitTextToSize(ref.relevance, pageWidth - (margin * 2));
       doc.text(relLines, margin, cursor);
-      cursor += relLines.length * 5 + 7;
+      cursor += relLines.length * 5 + 8;
     });
 
-    // Referências Globais
     checkNewPage(30);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('REFERÊNCIAS GLOBAIS', margin, cursor);
+    doc.text('REFERÊNCIAS GLOBAIS & OPINIÕES', margin, cursor);
     cursor += 10;
-    doc.setFontSize(10);
     research.globalReferences.forEach(ref => {
-      checkNewPage(15);
+      checkNewPage(20);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${ref.name} - ${ref.videoTitle}`, margin, cursor);
-      cursor += 5;
+      doc.text(`> ${ref.name}: ${ref.videoTitle}`, margin, cursor);
+      cursor += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       const relLines = doc.splitTextToSize(ref.relevance, pageWidth - (margin * 2));
       doc.text(relLines, margin, cursor);
-      cursor += relLines.length * 5 + 7;
+      cursor += relLines.length * 5 + 8;
     });
 
-    // Roteiro Masterclass
     if (scriptsRef.current?.master) {
       doc.addPage();
       cursor = 20;
@@ -215,19 +210,14 @@ export default function App() {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       const scriptLines = doc.splitTextToSize(scriptsRef.current.master, pageWidth - (margin * 2));
-      
-      // Paginação para o roteiro
       for (let i = 0; i < scriptLines.length; i++) {
-        if (cursor > 280) {
-          doc.addPage();
-          cursor = 20;
-        }
+        if (cursor > 280) { doc.addPage(); cursor = 20; }
         doc.text(scriptLines[i], margin, cursor);
         cursor += 4.5;
       }
     }
 
-    doc.save(`ExpertAI_Completo_${subject.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`ExpertAI_Dossie_Completo_${subject.replace(/\s+/g, '_')}.pdf`);
   };
 
   const handleStart = async (e: React.FormEvent) => {
@@ -243,13 +233,13 @@ export default function App() {
     try {
       setError(null);
       setProgress(5);
-      setEstimatedSeconds(90); // Estimativa reduzida
+      setEstimatedSeconds(45); // Estimativa ultra reduzida com Flash
       setStep(GenerationStep.RESEARCHING);
       
       const researchData = await gemini.researchSubject(subject);
       setResearch(researchData);
-      setProgress(30);
-      setEstimatedSeconds(60);
+      setProgress(35);
+      setEstimatedSeconds(30);
       
       setStep(GenerationStep.WRITING_SCRIPTS);
       const [scriptRes, scriptComp] = await Promise.all([
@@ -258,13 +248,12 @@ export default function App() {
       ]);
       scriptsRef.current = { pocket: scriptRes, master: scriptComp };
       
-      setProgress(55);
-      setEstimatedSeconds(40);
+      setProgress(60);
+      setEstimatedSeconds(20);
 
       setStep(GenerationStep.GENERATING_MEDIA);
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       
-      // Processamento em paralelo para otimizar tempo
       const [audioResBase64, audioCompBase64] = await Promise.all([
         gemini.generateSpeech(scriptRes),
         gemini.generateSpeech(scriptComp)
@@ -279,23 +268,15 @@ export default function App() {
       const audioCompUrl = URL.createObjectURL(gemini.createWavBlob(bufComp));
 
       setMedias([
-        { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast (Essencial)', description: 'O resumo estratégico para quem tem pouco tempo.', audioUrl: audioResUrl },
-        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão (Masterclass)', description: 'Explicação profunda e detalhada sobre o tema.', audioUrl: audioCompUrl }
+        { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast (Essencial)', description: 'O resumo estratégico ultra veloz.', audioUrl: audioResUrl },
+        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão (Masterclass)', description: 'Explicação profunda com síntese de voz premium.', audioUrl: audioCompUrl }
       ]);
 
       setProgress(100);
       setStep(GenerationStep.COMPLETED);
     } catch (err: any) {
       console.error("Erro capturado:", err);
-      let errorTitle = "Erro no Processamento";
-      let errorMessage = err.message || "Ocorreu um erro inesperado.";
-
-      if (err instanceof TypeError && err.message.includes('failed')) {
-        errorTitle = "Requisição Bloqueada";
-        errorMessage = "O navegador não conseguiu conectar com a inteligência do Google. Verifique seu AdBlock.";
-      }
-
-      setError({ title: errorTitle, message: errorMessage });
+      setError({ title: "Erro no Processamento", message: err.message || "Ocorreu um erro inesperado." });
       setStep(GenerationStep.ERROR);
     }
   };
@@ -310,7 +291,7 @@ export default function App() {
             </div>
             <h1 className="text-xl font-black tracking-tighter uppercase">Expert <span className="text-purple-500 italic">AI</span></h1>
           </div>
-          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Expert Performance v7.0</div>
+          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Ultra Fidelity v8.0</div>
         </div>
       </nav>
 
@@ -327,7 +308,7 @@ export default function App() {
                 type="text" 
                 value={subject} 
                 onChange={e => setSubject(e.target.value)} 
-                placeholder="Qual assunto você quer dominar hoje?" 
+                placeholder="O que você deseja aprender hoje?" 
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-8 text-xl focus:ring-2 focus:ring-purple-600 outline-none transition-all placeholder:text-gray-700 shadow-2xl" 
               />
               <button 
@@ -348,8 +329,8 @@ export default function App() {
                  <span className="absolute -bottom-4 text-[10px] font-black text-purple-400">{progress}%</span>
                </div>
              </div>
-             <h3 className="text-4xl font-black mb-4 tracking-tighter uppercase">Processando...</h3>
-             <p className="mb-12 text-gray-500 font-bold uppercase text-xs">Aguarde: {estimatedSeconds}s</p>
+             <h3 className="text-4xl font-black mb-4 tracking-tighter uppercase">Flash Generation...</h3>
+             <p className="mb-12 text-gray-500 font-bold uppercase text-xs">Aguarde aproximadamente: {estimatedSeconds}s</p>
              
              <div className="max-w-md mx-auto mb-16">
                <div className="progress-bar mb-10">
@@ -363,11 +344,6 @@ export default function App() {
                  <StepIndicator step={GenerationStep.GENERATING_MEDIA} currentStep={step} />
                </div>
              </div>
-             <p className="mt-12 text-[10px] text-gray-500 uppercase font-black tracking-widest animate-pulse">
-               {step === GenerationStep.RESEARCHING ? "Mapeando o conhecimento global..." : 
-                step === GenerationStep.WRITING_SCRIPTS ? "Redigindo roteiros imersivos..." : 
-                "Processando síntese de voz de alta fidelidade..."}
-             </p>
           </div>
         )}
 
@@ -379,18 +355,17 @@ export default function App() {
                 <h2 className="text-6xl md:text-7xl font-black capitalize leading-none tracking-tighter">{subject}</h2>
               </div>
               <div className="flex gap-4">
-                <button onClick={downloadPDF} className="px-6 py-4 rounded-2xl bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3 text-blue-400">
-                  <i className="fas fa-file-pdf"></i> Dossiê Completo
+                <button onClick={downloadPDF} className="px-6 py-4 rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3 text-blue-400">
+                  <i className="fas fa-file-pdf"></i> PDF COMPLETO
                 </button>
-                <button onClick={() => window.location.reload()} className="px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3">
-                  <i className="fas fa-search"></i> Nova Pesquisa
+                <button onClick={() => setStep(GenerationStep.IDLE)} className="px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3 text-white/50">
+                  <i className="fas fa-search"></i> NOVA BUSCA
                 </button>
               </div>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2 space-y-12">
-                
                 <section className="glass-panel p-10 md:p-14 rounded-[3rem] border-l-8 border-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent">
                   <h3 className="text-2xl font-black mb-8 flex items-center gap-4"><i className="fas fa-book-open text-blue-500"></i> Inteligência e Contexto</h3>
                   <div className="text-gray-200 space-y-10 leading-relaxed">
@@ -406,19 +381,12 @@ export default function App() {
                   {medias.map(m => <MediaCard key={m.id} media={m} subject={subject} />)}
                 </div>
 
-                <section className="glass-panel p-10 md:p-14 rounded-[3rem] border-l-8 border-green-600 bg-gradient-to-br from-green-600/5 to-transparent">
-                  <h3 className="text-2xl font-black mb-8 flex items-center gap-4"><i className="fas fa-telescope text-green-500"></i> Visão de Futuro (5-10 anos)</h3>
-                  <div className="bg-green-500/5 p-8 rounded-3xl border border-green-500/20">
-                    <p className="text-gray-300 text-lg leading-relaxed italic font-medium whitespace-pre-line">{research.futureVision}</p>
-                  </div>
-                </section>
-
                 <section className="glass-panel p-10 md:p-14 rounded-[3rem] border-l-8 border-orange-500 bg-orange-500/5">
                   <div className="flex items-center gap-4 mb-8">
                     <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.4)]">
                       <i className="fas fa-chart-line text-white text-xl"></i>
                     </div>
-                    <h3 className="text-2xl font-black uppercase tracking-tighter">Planos de Oportunidade</h3>
+                    <h3 className="text-2xl font-black uppercase tracking-tighter">Oportunidades</h3>
                   </div>
                   <div className="text-gray-300 text-lg leading-relaxed font-medium whitespace-pre-line space-y-8">
                     {research.businessOpportunities.split('\n').filter(l => l.trim()).map((opt, i) => (
@@ -431,8 +399,8 @@ export default function App() {
               </div>
 
               <div className="space-y-8">
-                <div className="glass-panel p-8 rounded-[2.5rem] bg-gradient-to-b from-purple-900/10 to-transparent border-t border-purple-500/20">
-                  <h3 className="text-xl font-black mb-8 flex items-center gap-3"><i className="fas fa-microphone-alt text-red-500"></i> Referências em Vídeo</h3>
+                <div className="glass-panel p-8 rounded-[2.5rem] border-t border-purple-500/20">
+                  <h3 className="text-xl font-black mb-8 flex items-center gap-3"><i className="fas fa-microphone-alt text-red-500"></i> Vídeos & Opiniões</h3>
                   <div className="space-y-6">
                     <span className="text-[10px] font-black uppercase text-gray-600 tracking-widest block border-b border-white/5 pb-2">Mercado Nacional</span>
                     {research.brazilianReferences.map((p, i) => <ReferenceCard key={`b-${i}`} person={p} />)}
@@ -441,47 +409,17 @@ export default function App() {
                     {research.globalReferences.map((p, i) => <ReferenceCard key={`g-${i}`} person={p} />)}
                   </div>
                 </div>
-
-                <div className="glass-panel p-8 rounded-3xl">
-                   <h3 className="text-xs font-black mb-6 uppercase tracking-widest text-gray-500 border-b border-white/5 pb-4">Fontes Consultadas</h3>
-                   <div className="flex flex-col gap-3">
-                     {research.sources?.map((s, i) => (
-                       <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="p-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold hover:bg-white/10 transition-all flex items-center gap-4 group">
-                         <i className="fas fa-external-link-alt opacity-30 group-hover:opacity-100 transition-opacity"></i>
-                         <span className="truncate">{s.title}</span>
-                       </a>
-                     ))}
-                   </div>
-                </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {step === GenerationStep.ERROR && error && (
-          <div className="max-w-lg mx-auto text-center py-24 glass-panel rounded-[3rem] border-red-500/30 px-12 animate-in fade-in slide-in-from-top-4">
-            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-8">
-              <i className="fas fa-network-wired text-4xl text-red-600"></i>
-            </div>
-            <h3 className="text-3xl font-black mb-4">{error.title}</h3>
-            <p className="text-gray-400 mb-10 text-sm leading-relaxed">{error.message}</p>
-            <div className="flex flex-col gap-4">
-              <button onClick={() => window.location.reload()} className="w-full px-8 py-5 bg-white text-black rounded-2xl font-black uppercase text-xs hover:bg-gray-200 transition-all shadow-2xl">
-                Atualizar Página
-              </button>
-              <button onClick={() => setStep(GenerationStep.IDLE)} className="w-full px-8 py-5 bg-white/5 border border-white/10 text-white rounded-2xl font-black uppercase text-xs hover:bg-white/10 transition-all">
-                Tentar Outro Assunto
-              </button>
             </div>
           </div>
         )}
       </main>
 
       <footer className="mt-32 border-t border-white/5 py-16 flex flex-col items-center gap-8">
-        <div className="text-[10px] uppercase font-black tracking-[0.5em] opacity-60 text-center">
+        <div className="text-[11px] uppercase font-black tracking-[0.5em] opacity-90 text-center text-gray-300">
           Expert AI Ultra Fidelity Experience // By Renato Torres
         </div>
-        <div className="px-10 py-5 rounded-[2rem] bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-white/10 text-xs font-bold text-gray-200 shadow-2xl backdrop-blur-md">
+        <div className="px-10 py-5 rounded-[2rem] bg-white/5 border border-white/10 text-xs font-bold text-gray-200 shadow-2xl backdrop-blur-md">
           Gostou? Contribua para nossa evolução pelo PIX: <span className="text-purple-400 select-all font-black text-sm ml-2">110.396.868-85</span>
         </div>
       </footer>

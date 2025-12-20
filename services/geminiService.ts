@@ -5,7 +5,7 @@ import { ResearchResult } from "../types";
 const getAI = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey || apiKey === "undefined") {
-    throw new Error("API_KEY_MISSING: A chave de API não foi encontrada. Verifique as configurações de ambiente.");
+    throw new Error("API_KEY_MISSING: A chave de API não foi encontrada.");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -19,7 +19,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
       lastError = err;
       if (err.message?.includes('500') || err.message?.includes('INTERNAL') || err.message?.includes('Load failed')) {
         if (i < maxRetries) {
-          await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+          await new Promise(r => setTimeout(r, 1000 * (i + 1)));
           continue;
         }
       }
@@ -37,22 +37,20 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
 
     REGRAS CRÍTICAS PARA VÍDEOS (YOUTUBE):
     1. Use a ferramenta 'googleSearch' para encontrar os vídeos.
-    2. NUNCA invente ou alucine links. Copie EXATAMENTE a URL encontrada nos resultados de pesquisa.
-    3. Procure por vídeos postados nos últimos 24 meses.
-    4. Priorize canais VERIFICADOS.
-    5. Formato: https://www.youtube.com/watch?v=...
+    2. NUNCA invente links. Copie EXATAMENTE a URL encontrada.
+    3. Formato: https://www.youtube.com/watch?v=...
 
     ESTRUTURA DO JSON:
     - summary: Resumo estratégico de alto impacto.
-    - history: Contexto histórico detalhado desde o início até hoje.
+    - history: Contexto histórico detalhado.
     - futureVision: Visão de futuro para os próximos 5 a 10 anos.
-    - businessOpportunities: Mínimo de 3 oportunidades de negócio. Use emojis no início de cada uma e dê um título curto e marcante para cada parágrafo. Ex: "🚀 Nome da Ideia: Descrição...".
-    - globalReferences: 3 vídeos internacionais reais e ativos.
-    - brazilianReferences: 3 vídeos brasileiros reais e ativos.
-    - facts: 5 fatos curiosos e validados.`;
+    - businessOpportunities: Mínimo de 3 oportunidades de negócio. Use emojis no início de cada uma.
+    - globalReferences: 3 vídeos internacionais reais.
+    - brazilianReferences: 3 vídeos brasileiros reais.
+    - facts: 5 fatos curiosos.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
+      model: "gemini-3-flash-preview", // Mudado para Flash para velocidade máxima
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -114,18 +112,18 @@ export const generateDetailedScript = async (subject: string, mode: 'resumido' |
     
     let prompt = "";
     if (mode === 'completo') {
-      prompt = `Você é um apresentador de podcast de elite. Escreva um roteiro EXTENSO e envolvente sobre: "${subject}". 
-      Discorra sobre a evolução histórica, cenário atual, oportunidades de negócio e visão de futuro.
-      O roteiro deve ser denso em conteúdo mas fluido. Escreva apenas o texto falado. Sem marcações técnicas.`;
+      prompt = `Você é um apresentador de podcast de elite. Escreva um roteiro ENVOLVENTE sobre: "${subject}". 
+      Discorra sobre a evolução histórica, cenário atual, oportunidades e futuro.
+      Escreva apenas o texto que deve ser falado. Sem marcações técnicas.`;
     } else {
-      prompt = `Escreva um roteiro de podcast resumido e direto sobre: "${subject}" em PORTUGUÊS. Apenas a fala.`;
+      prompt = `Escreva um roteiro de podcast resumido sobre: "${subject}" em PORTUGUÊS. Apenas a fala.`;
     }
     
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
+      model: "gemini-3-flash-preview", // Mudado para Flash para velocidade máxima
       contents: prompt,
       config: {
-        thinkingConfig: { thinkingBudget: 4000 }
+        thinkingConfig: { thinkingBudget: 0 } // Desativa thinking para ser instantâneo
       }
     });
     
