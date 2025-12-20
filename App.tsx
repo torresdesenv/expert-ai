@@ -66,7 +66,7 @@ const MediaCard: React.FC<{ media: GeneratedMedia, subject: string }> = ({ media
           const a = document.createElement('a');
           a.href = media.audioUrl;
           const safeName = subject.replace(/\s+/g, '_');
-          a.download = `ExpertAI_${safeName}_${media.duration === 'completo' ? 'MASTER' : 'POCKET'}.wav`;
+          a.download = `ExpertAI_${safeName}_${media.duration === 'completo' ? 'MASTERCLASS' : 'POCKET'}.wav`;
           a.click();
         }} 
         className="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black transition-all flex items-center justify-center gap-2"
@@ -233,13 +233,13 @@ export default function App() {
     try {
       setError(null);
       setProgress(5);
-      setEstimatedSeconds(45); // Estimativa ultra reduzida com Flash
+      setEstimatedSeconds(35); 
       setStep(GenerationStep.RESEARCHING);
       
       const researchData = await gemini.researchSubject(subject);
       setResearch(researchData);
       setProgress(35);
-      setEstimatedSeconds(30);
+      setEstimatedSeconds(20);
       
       setStep(GenerationStep.WRITING_SCRIPTS);
       const [scriptRes, scriptComp] = await Promise.all([
@@ -248,8 +248,8 @@ export default function App() {
       ]);
       scriptsRef.current = { pocket: scriptRes, master: scriptComp };
       
-      setProgress(60);
-      setEstimatedSeconds(20);
+      setProgress(65);
+      setEstimatedSeconds(10);
 
       setStep(GenerationStep.GENERATING_MEDIA);
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -268,8 +268,8 @@ export default function App() {
       const audioCompUrl = URL.createObjectURL(gemini.createWavBlob(bufComp));
 
       setMedias([
-        { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast (Essencial)', description: 'O resumo estratégico ultra veloz.', audioUrl: audioResUrl },
-        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão (Masterclass)', description: 'Explicação profunda com síntese de voz premium.', audioUrl: audioCompUrl }
+        { id: 'p1', type: 'podcast', duration: 'resumido', title: 'Pocket Podcast (Essencial)', description: 'O resumo estratégico em segundos.', audioUrl: audioResUrl },
+        { id: 'p2', type: 'podcast', duration: 'completo', title: 'Imersão (Masterclass)', description: 'Explicação profunda e detalhada.', audioUrl: audioCompUrl }
       ]);
 
       setProgress(100);
@@ -291,7 +291,7 @@ export default function App() {
             </div>
             <h1 className="text-xl font-black tracking-tighter uppercase">Expert <span className="text-purple-500 italic">AI</span></h1>
           </div>
-          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Ultra Fidelity v8.0</div>
+          <div className="text-[10px] uppercase font-black tracking-widest text-gray-500">Ultra Fidelity v9.0</div>
         </div>
       </nav>
 
@@ -300,7 +300,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto text-center py-24 animate-in fade-in zoom-in duration-700">
             <h2 className="text-6xl md:text-8xl font-black mb-8 leading-[0.85] tracking-tighter">Domine qualquer <span className="gradient-text">Assunto.</span></h2>
             <p className="text-lg text-gray-400 mb-12 max-w-xl mx-auto leading-relaxed">
-              Pesquisa avançada, roteiros profundos e síntese de voz cinematográfica em uma única experiência.
+              Pesquisa avançada e síntese de voz cinematográfica em uma experiência ultra rápida.
             </p>
             
             <form onSubmit={handleStart} className="relative max-w-2xl mx-auto">
@@ -308,14 +308,14 @@ export default function App() {
                 type="text" 
                 value={subject} 
                 onChange={e => setSubject(e.target.value)} 
-                placeholder="O que você deseja aprender hoje?" 
+                placeholder="O que você quer aprender agora?" 
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-8 text-xl focus:ring-2 focus:ring-purple-600 outline-none transition-all placeholder:text-gray-700 shadow-2xl" 
               />
               <button 
                 type="submit" 
                 className="w-full sm:w-auto mt-4 sm:mt-0 sm:absolute sm:right-3 sm:top-3 sm:bottom-3 px-10 bg-purple-600 rounded-xl font-black hover:bg-purple-500 transition-all flex items-center justify-center gap-2"
               >
-                Gerar Inteligência <i className="fas fa-bolt text-sm"></i>
+                Gerar <i className="fas fa-bolt text-sm"></i>
               </button>
             </form>
           </div>
@@ -329,8 +329,8 @@ export default function App() {
                  <span className="absolute -bottom-4 text-[10px] font-black text-purple-400">{progress}%</span>
                </div>
              </div>
-             <h3 className="text-4xl font-black mb-4 tracking-tighter uppercase">Flash Generation...</h3>
-             <p className="mb-12 text-gray-500 font-bold uppercase text-xs">Aguarde aproximadamente: {estimatedSeconds}s</p>
+             <h3 className="text-4xl font-black mb-4 tracking-tighter uppercase">Gerando Inteligência...</h3>
+             <p className="mb-12 text-gray-500 font-bold uppercase text-xs">Tempo estimado restante: {estimatedSeconds}s</p>
              
              <div className="max-w-md mx-auto mb-16">
                <div className="progress-bar mb-10">
@@ -355,10 +355,10 @@ export default function App() {
                 <h2 className="text-6xl md:text-7xl font-black capitalize leading-none tracking-tighter">{subject}</h2>
               </div>
               <div className="flex gap-4">
-                <button onClick={downloadPDF} className="px-6 py-4 rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3 text-blue-400">
-                  <i className="fas fa-file-pdf"></i> PDF COMPLETO
+                <button onClick={downloadPDF} className="px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3 text-white shadow-xl shadow-blue-900/20">
+                  <i className="fas fa-file-pdf text-lg"></i> BAIXAR PDF COMPLETO
                 </button>
-                <button onClick={() => setStep(GenerationStep.IDLE)} className="px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3 text-white/50">
+                <button onClick={() => setStep(GenerationStep.IDLE)} className="px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-black uppercase text-xs tracking-widest flex items-center gap-3">
                   <i className="fas fa-search"></i> NOVA BUSCA
                 </button>
               </div>
@@ -386,11 +386,11 @@ export default function App() {
                     <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.4)]">
                       <i className="fas fa-chart-line text-white text-xl"></i>
                     </div>
-                    <h3 className="text-2xl font-black uppercase tracking-tighter">Oportunidades</h3>
+                    <h3 className="text-2xl font-black uppercase tracking-tighter">Oportunidades Estratégicas</h3>
                   </div>
                   <div className="text-gray-300 text-lg leading-relaxed font-medium whitespace-pre-line space-y-8">
                     {research.businessOpportunities.split('\n').filter(l => l.trim()).map((opt, i) => (
-                      <div key={i} className="p-8 bg-white/5 rounded-3xl border border-white/5 hover:border-orange-500/30 transition-all shadow-xl leading-relaxed">
+                      <div key={i} className="p-8 bg-white/10 rounded-3xl border border-white/10 hover:border-orange-500/40 transition-all shadow-xl leading-relaxed">
                         {opt}
                       </div>
                     ))}
@@ -415,11 +415,11 @@ export default function App() {
         )}
       </main>
 
-      <footer className="mt-32 border-t border-white/5 py-16 flex flex-col items-center gap-8">
-        <div className="text-[11px] uppercase font-black tracking-[0.5em] opacity-90 text-center text-gray-300">
+      <footer className="mt-32 border-t border-white/5 py-16 flex flex-col items-center gap-10">
+        <div className="text-[12px] uppercase font-black tracking-[0.5em] text-center text-white opacity-100">
           Expert AI Ultra Fidelity Experience // By Renato Torres
         </div>
-        <div className="px-10 py-5 rounded-[2rem] bg-white/5 border border-white/10 text-xs font-bold text-gray-200 shadow-2xl backdrop-blur-md">
+        <div className="px-10 py-5 rounded-[2rem] bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-white/10 text-xs font-bold text-gray-100 shadow-2xl backdrop-blur-md">
           Gostou? Contribua para nossa evolução pelo PIX: <span className="text-purple-400 select-all font-black text-sm ml-2">110.396.868-85</span>
         </div>
       </footer>
