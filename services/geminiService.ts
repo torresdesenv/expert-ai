@@ -2,8 +2,6 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { ResearchResult } from "../types";
 
-// Função para obter uma instância limpa da IA a cada chamada
-// Isso é crucial para garantir que a API_KEY mais recente (injetada ou do ambiente) seja usada
 const getAI = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey || apiKey === "undefined") {
@@ -19,7 +17,6 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
       return await fn();
     } catch (err: any) {
       lastError = err;
-      // Erros 500 ou problemas de rede temporários permitem tentativa
       if (err.message?.includes('500') || err.message?.includes('INTERNAL') || err.message?.includes('Load failed')) {
         if (i < maxRetries) {
           await new Promise(r => setTimeout(r, 1500 * (i + 1)));
@@ -49,7 +46,7 @@ export const researchSubject = async (subject: string): Promise<ResearchResult> 
     - summary: Resumo estratégico de alto impacto.
     - history: Contexto histórico detalhado desde o início até hoje.
     - futureVision: Visão de futuro para os próximos 5 a 10 anos.
-    - businessOpportunities: 3 planos de negócio concretos.
+    - businessOpportunities: Mínimo de 3 oportunidades de negócio. Use emojis no início de cada uma e dê um título curto e marcante para cada parágrafo. Ex: "🚀 Nome da Ideia: Descrição...".
     - globalReferences: 3 vídeos internacionais reais e ativos.
     - brazilianReferences: 3 vídeos brasileiros reais e ativos.
     - facts: 5 fatos curiosos e validados.`;
@@ -117,11 +114,11 @@ export const generateDetailedScript = async (subject: string, mode: 'resumido' |
     
     let prompt = "";
     if (mode === 'completo') {
-      prompt = `Você é um apresentador de podcast de elite. Escreva um roteiro EXTENSO (mínimo 1500 palavras) sobre: "${subject}". 
-      Discorra sobre a evolução histórica desde o início, passe pelo cenário atual e termine com oportunidades de negócio e visão de futuro para os próximos 5 anos.
-      Escreva apenas o texto que deve ser falado, de forma fluida.`;
+      prompt = `Você é um apresentador de podcast de elite. Escreva um roteiro EXTENSO e envolvente sobre: "${subject}". 
+      Discorra sobre a evolução histórica, cenário atual, oportunidades de negócio e visão de futuro.
+      O roteiro deve ser denso em conteúdo mas fluido. Escreva apenas o texto falado. Sem marcações técnicas.`;
     } else {
-      prompt = `Escreva um roteiro de podcast resumido sobre: "${subject}" em PORTUGUÊS. Apenas a fala.`;
+      prompt = `Escreva um roteiro de podcast resumido e direto sobre: "${subject}" em PORTUGUÊS. Apenas a fala.`;
     }
     
     const response = await ai.models.generateContent({

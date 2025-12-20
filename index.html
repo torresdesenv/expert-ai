@@ -33,13 +33,24 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        /* Custom styles for audio player to look better in dark mode */
         .custom-audio::-webkit-media-controls-panel {
             background-color: rgba(255, 255, 255, 0.1);
         }
         .custom-audio::-webkit-media-controls-current-time-display,
         .custom-audio::-webkit-media-controls-time-remaining-display {
             color: #ffffff;
+        }
+        .progress-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #60a5fa, #a855f7);
+            transition: width 0.5s ease-out;
         }
     </style>
 <script type="importmap">
@@ -50,14 +61,14 @@
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
     "react-dom": "https://esm.sh/react-dom@^19.2.3",
-    "vite": "https://esm.sh/vite@^7.3.0"
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "jspdf": "https://esm.sh/jspdf@^2.5.1"
   }
 }
 </script>
 </head>
 <body>
     <div id="root"></div>
-    <!-- Script de entrada necessário para iniciar a aplicação -->
     <script type="module" src="/index.tsx"></script>
 </body>
 </html>
